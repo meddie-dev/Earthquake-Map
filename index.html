@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Philippines Latest Earthquake Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="shortcut icon" href="Earthquake.png" type="image/x-icon">
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <!-- Navbar -->
+    <div id="navbar">
+        <div class="logo">
+            <img src="Earthquake.png" alt="Earthquake Icon"
+                style="width: 30px; height: 30px; border: none; filter: invert(100%);" />
+            Earthquake Monitor
+        </div>
+        <div style="display: flex;">
+            <canvas id="timer-clock" width="24" height="24"></canvas>
+            <button id="toggle-btn">&#9776;</button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div id="sidebar-header">PHP Magnitude 2.5+ <br>Earthquakes, Past 30 Days</div>
+
+            <div id="quake-count">0 earthquakes.</div>
+            <div id="filter-container">
+                <input type="checkbox" id="show-on-map" />
+                <label for="show-on-map">Only List Earthquakes Shown on <br> Map</label>
+            </div>
+
+            <div id="info-panel"></div>
+        </div>
+
+        <!-- Map -->
+        <div id="map">
+            <div id="legend">
+                <strong>Shake Intensity Impact Zones</strong>
+                <div class="legend-row">
+                    <div class="legend-color legend-red"></div>High Impact (Magnitude ≥ 6)
+                </div>
+                <div class="legend-row">
+                    <div class="legend-color legend-orange"></div>Moderate Impact (Magnitude 5–5.9)
+                </div>
+                <div class="legend-row">
+                    <div class="legend-color legend-yellow"></div>Light Impact (Magnitude 4–4.9)
+                </div>
+                <div class="legend-row">
+                    <div class="legend-color legend-blue"></div>Minor Impact (Magnitude 2.5–3.9)
+                </div>
+            </div>
+
+            <div id="place-modal"
+                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999;">
+                <div
+                    style="background:#fff; padding:15px; border-radius:8px; max-width:400px; margin:100px auto; position:relative;">
+                    <span id="modal-close"
+                        style="cursor:pointer; position:absolute; top:10px; right:15px; font-size:20px;">&times;</span>
+                    <h2 id="modal-title"></h2>
+                    <p id="modal-description"></p>
+                    <small id="modal-coords"></small>
+                </div>
+            </div>
+
+            <div id="danger-icon" title="Latest Earthquake Today"
+                style="display:none; position:absolute; top:12px; right:12px; cursor:pointer; z-index:1100;">
+                &#9888;
+            </div>
+
+            <div id="location-btn" title="Toggle My Location"
+                style="position:absolute; top:55px; right:12px; cursor:pointer; z-index:1100; font-size:20px; color:#fff;">
+                &#x1F5FA;
+            </div>
+
+            <div id="siren-btn" title="Sound the Siren"
+                style="position:absolute; top:98px; right:12px; cursor:pointer; z-index:1100; font-size:20px; color:#fff;">
+                <div id="siren-icon" title="Sound the Siren">
+                    <span style="filter: invert(100%);" id="sirenIcon">&#x1F6A8;</span>
+                </div>
+                <div id="red-feathered-edges"></div>
+            </div>
+
+        </div>
+
+        <div id="alert-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+            background:rgba(0,0,0,0.75); z-index:10000; justify-content:center; align-items:center;">
+
+            <div id="red-feathered-edges"></div>
+
+            <div
+                style="background:#fff; padding:20px; border-radius:10px; max-width:400px; text-align:center; position:relative; z-index:10;">
+                <span id="alert-modal-close"
+                    style="position:absolute; top:10px; right:15px; font-size:24px; cursor:pointer;">&times;</span>
+                <div style="font-size:48px; color:#e74c3c;">&#9888;</div>
+                <h2>Earthquake Alert!</h2>
+                <p>An earthquake occurred near your location.</p>
+                <button id="alert-sound-toggle"
+                    style="padding:8px 16px; margin-top:10px; font-size:16px; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer;">Toggle
+                    Alert Sound</button>
+            </div>
+        </div>
+
+        <div id="location-warning">
+            <strong>Location Access Needed</strong>
+            <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.3;">
+                Please allow location access to enable earthquake alerts and other location-based features.
+            </p>
+        </div>
+
+
+        <audio id="alert-siren" src="Alarm.mp3" loop></audio>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
