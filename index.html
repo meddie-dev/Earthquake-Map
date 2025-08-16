@@ -84,15 +84,12 @@
                 <div id="siren-icon" title="Sound the Siren">
                     <span style="filter: invert(100%);" id="sirenIcon">&#x1F6A8;</span>
                 </div>
-                <div id="red-feathered-edges"></div>
             </div>
 
         </div>
 
         <div id="alert-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
             background:rgba(0,0,0,0.75); z-index:10000; justify-content:center; align-items:center;">
-
-            <div id="red-feathered-edges"></div>
 
             <div
                 style="background:#fff; padding:20px; border-radius:10px; max-width:400px; text-align:center; position:relative; z-index:10;">
@@ -114,9 +111,21 @@
             </p>
         </div>
 
-
         <audio id="alert-siren" src="Alarm.mp3" loop></audio>
     </div>
+
+    <!-- Modal -->
+    <div id="location-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2 id="modal-title">Location Access Needed</h2>
+            <p id="modal-message">
+                Please allow location access to enable earthquake alerts and other location-based features.
+            </p>
+        </div>
+    </div>
+
+    <div id="red-feathered-edges"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="script.js"></script>

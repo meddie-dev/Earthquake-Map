@@ -71,13 +71,13 @@ function createRippleIcon(magnitude) {
   let centerColor, rippleColor;
 
   if (magnitude >= 6) {
-    centerColor = "rgba(217, 83, 79, 1)"; 
+    centerColor = "rgba(217, 83, 79, 1)";
     rippleColor = "rgba(217, 83, 79, 0.7)";
   } else if (magnitude >= 5) {
-    centerColor = "rgba(243, 156, 18, 1)"; 
+    centerColor = "rgba(243, 156, 18, 1)";
     rippleColor = "rgba(243, 156, 18, 0.7)";
   } else if (magnitude >= 4) {
-    centerColor = "rgba(241, 196, 15, 1)"; 
+    centerColor = "rgba(241, 196, 15, 1)";
     rippleColor = "rgba(241, 196, 15, 0.7)";
   } else if (magnitude >= 2.5) {
     centerColor = "rgba(52, 152, 219, 1)"; // blue
@@ -151,12 +151,12 @@ function addEarthquakeToList(id, props) {
   const header = document.createElement("div");
   header.className = "quake-header";
   const magSpan = document.createElement("span");
-magSpan.className = "quake-mag";
-magSpan.textContent = props.mag.toFixed(1);
+  magSpan.className = "quake-mag";
+  magSpan.textContent = props.mag.toFixed(1);
 
-const colors = getImpactZoneColor(props.mag);
+  const colors = getImpactZoneColor(props.mag);
 
-magSpan.style.backgroundColor = colors.color;
+  magSpan.style.backgroundColor = colors.color;
   magSpan.textContent = props.mag.toFixed(1);
   const placeSpan = document.createElement("span");
   placeSpan.className = "quake-place";
@@ -183,6 +183,11 @@ magSpan.style.backgroundColor = colors.color;
     if (marker) {
       map.setView(marker.getLatLng(), 11);
       marker.openPopup();
+    }
+
+    if (window.innerWidth <= 768) {
+      sidebar.classList.add("hidden");
+      setTimeout(() => map.invalidateSize(), 350);
     }
   });
 
@@ -324,35 +329,47 @@ function showDangerIconForLatestToday(features) {
   const dangerIcon = document.getElementById("danger-icon");
   const today = new Date();
 
-  const todayQuakes = features.filter(f => {
+  // Filter quakes that happened today
+  const todayQuakes = features.filter((f) => {
     const quakeDate = new Date(f.properties.time);
     return isSameDate(quakeDate, today);
   });
 
-  if (todayQuakes.length === 0) {
+  const sorted = [...features].sort(
+    (a, b) => b.properties.time - a.properties.time
+  );
+  const latestOverall = sorted[0];
+  const latestToday = todayQuakes.length > 0 ? todayQuakes[0] : null;
+
+  if (!latestOverall) {
     dangerIcon.style.display = "none";
     dangerIcon.classList.remove("blink");
     dangerIcon.onclick = null;
     return;
   }
 
-  todayQuakes.sort((a, b) => b.properties.time - a.properties.time);
-  const latestQuake = todayQuakes[0];
-
   dangerIcon.style.display = "block";
-  dangerIcon.classList.add("blink");
+
+  if (latestToday) {
+    dangerIcon.classList.add("blink");
+  } else {
+    dangerIcon.classList.remove("blink");
+  }
 
   dangerIcon.onclick = () => {
-    const marker = markers.find(m => m.id === latestQuake.id);
+    const targetQuake = latestToday || latestOverall;
+    const marker = markers.find((m) => m.id === targetQuake.id);
     if (!marker) {
-      console.warn("Danger icon: Marker not found for quake id", latestQuake.id);
+      console.warn(
+        "Danger icon: Marker not found for quake id",
+        targetQuake.id
+      );
       return;
     }
     map.setView(marker.getLatLng(), 11);
     setTimeout(() => marker.openPopup(), 250);
   };
 }
-
 
 function applyMapFilter() {
   if (isFiltering) return;
@@ -468,16 +485,18 @@ requestAnimationFrame(animateTimer);
 let userMarker = null;
 let trackingLocation = false;
 let watchId = null;
+let accuracyCircle = null;
+let followUser = true;
 const LOCATION_BTN = document.getElementById("location-btn");
 const ALERT_MODAL = document.getElementById("alert-modal");
 const ALERT_CLOSE = document.getElementById("alert-modal-close");
 const ALERT_SOUND_TOGGLE = document.getElementById("alert-sound-toggle");
 const ALERT_SIREN = document.getElementById("alert-siren");
+const RED_EDGES = document.getElementById("red-feathered-edges");
 
-const ALERT_DISTANCE_THRESHOLD_METERS = 50000; // 50 km alert range
+const ALERT_DISTANCE_THRESHOLD_METERS = 50000;
 
-// New: container for permission warning message
-const LOCATION_WARNING = document.createElement('div');
+const LOCATION_WARNING = document.createElement("div");
 LOCATION_WARNING.id = "location-warning";
 LOCATION_WARNING.style.cssText = `
   position: fixed;
@@ -494,7 +513,8 @@ LOCATION_WARNING.style.cssText = `
   box-shadow: 0 0 10px rgba(255,0,0,0.7);
   cursor: default;
 `;
-LOCATION_WARNING.textContent = "Location access is needed for earthquake alerts and other features to work properly. Please allow location access.";
+LOCATION_WARNING.textContent =
+  "Location access is needed for earthquake alerts and other features to work properly. Please allow location access.";
 document.body.appendChild(LOCATION_WARNING);
 
 function showLocationWarning() {
@@ -506,83 +526,150 @@ function hideLocationWarning() {
 }
 
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
-  function toRad(x) { return x * Math.PI / 180; }
-  const R = 6371000; // Earth radius in meters
+  function toRad(x) {
+    return (x * Math.PI) / 180;
+  }
+  const R = 6371000;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
 function toggleLocationTracking() {
   if (trackingLocation) {
-    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-    if (userMarker) {
-      map.removeLayer(userMarker);
-      userMarker = null;
-    }
-    trackingLocation = false;
-    LOCATION_BTN.style.color = "white";
-    hideLocationWarning();  // Hide warning if user toggles off tracking
+    stopTracking();
   } else {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
-      return;
-    }
-    
-    watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        hideLocationWarning(); // Hide warning when location successfully retrieved
-        
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        
-        if (!userMarker) {
-          userMarker = L.marker([lat, lng], {
-            icon: L.icon({
-              iconUrl: "https://cdn-icons-png.flaticon.com/512/14035/14035451.png",
-              iconSize: [32, 32],
-              iconAnchor: [16, 32],
-            }),
-            title: "Your Location",
-          }).addTo(map);
-        } else {
-          userMarker.setLatLng([lat, lng]);
-        }
-        
-        map.setView([lat, lng], 15);
+    startTracking();
+  }
+}
 
-        checkNearbyQuake(lat, lng);
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          showLocationWarning();  
-        } else {
-          alert("Unable to retrieve your location: " + err.message);
-        }
-        trackingLocation = false;
-        LOCATION_BTN.style.color = "white";
-      },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+function startTracking() {
+  if (!navigator.geolocation) {
+    showModal(
+      "Geolocation Not Supported",
+      "Your browser does not support location services. Please try a different browser."
     );
-    
-    trackingLocation = true;
-    LOCATION_BTN.style.color = "#d1d1d1ff";
+    return;
+  }
+
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      hideLocationWarning();
+
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy;
+
+      updateUserLocation(lat, lng, accuracy);
+
+      if (followUser) {
+        map.setView([lat, lng], 15);
+        followUser = false;
+      }
+
+      throttleCheckNearbyQuake(lat, lng);
+    },
+    (err) => {
+      if (err.code === err.PERMISSION_DENIED) {
+        showLocationWarning(); // your existing div-based warning
+      } else if (err.code === err.TIMEOUT) {
+        showModal(
+          "Location Timeout",
+          "Location request timed out. Please try again."
+        );
+      } else {
+        showModal(
+          "Location Error",
+          "Unable to retrieve your location: " + err.message
+        );
+      }
+      stopTracking();
+    },
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+  );
+
+  trackingLocation = true;
+  LOCATION_BTN.style.color = "#4CAF50"; // green when active
+  LOCATION_BTN.title = "Stop tracking your location";
+}
+
+function stopTracking() {
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+
+  if (userMarker) {
+    userMarker.setOpacity(0.5);
+  }
+  if (accuracyCircle) {
+    accuracyCircle.remove();
+    accuracyCircle = null;
+  }
+
+  trackingLocation = false;
+  LOCATION_BTN.style.color = "white";
+  LOCATION_BTN.title = "Start tracking your location";
+  followUser = true;
+}
+
+function updateUserLocation(lat, lng, accuracy) {
+  if (!userMarker) {
+    userMarker = L.marker([lat, lng], {
+      icon: L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/14035/14035451.png",
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+      }),
+      title: "Your Location",
+    }).addTo(map);
+  } else {
+    userMarker.setLatLng([lat, lng]);
+    userMarker.setOpacity(1.0);
+  }
+
+  if (!accuracyCircle) {
+    accuracyCircle = L.circle([lat, lng], {
+      radius: accuracy,
+      color: "#136aec",
+      fillColor: "#136aec",
+      fillOpacity: 0.2,
+      weight: 2,
+    }).addTo(map);
+  } else {
+    accuracyCircle.setLatLng([lat, lng]);
+    accuracyCircle.setRadius(accuracy);
+  }
+}
+
+let lastQuakeCheck = 0;
+function throttleCheckNearbyQuake(lat, lng) {
+  const now = Date.now();
+  if (now - lastQuakeCheck > 15000) {
+    checkNearbyQuake(lat, lng);
+    lastQuakeCheck = now;
   }
 }
 
 function checkNearbyQuake(userLat, userLng) {
   if (!markers.length) return;
 
-  if (typeof checkNearbyQuake.counter === 'undefined') checkNearbyQuake.counter = 0;
+  if (typeof checkNearbyQuake.counter === "undefined")
+    checkNearbyQuake.counter = 0;
   checkNearbyQuake.counter++;
   console.log("checkNearbyQuake called count:", checkNearbyQuake.counter);
 
   const latestQuakeMarker = markers.reduce((latest, marker) => {
-    return !latest || marker.options.time > latest.options.time ? marker : latest;
+    return !latest || marker.options.time > latest.options.time
+      ? marker
+      : latest;
   }, null);
 
   const latestQuake = markers[markers.length - 1];
@@ -590,7 +677,12 @@ function checkNearbyQuake(userLat, userLng) {
 
   const quakeLatLng = latestQuake.getLatLng();
 
-  const dist = getDistanceMeters(userLat, userLng, quakeLatLng.lat, quakeLatLng.lng);
+  const dist = getDistanceMeters(
+    userLat,
+    userLng,
+    quakeLatLng.lat,
+    quakeLatLng.lng
+  );
 
   if (dist <= ALERT_DISTANCE_THRESHOLD_METERS) {
     showAlertModal();
@@ -602,7 +694,7 @@ function checkNearbyQuake(userLat, userLng) {
 function showAlertModal() {
   if (ALERT_MODAL.style.display === "flex") return;
   ALERT_MODAL.style.display = "flex";
-
+  RED_EDGES.style.display = "block";
   ALERT_SIREN.play().catch((err) => {
     console.warn("Autoplay failed:", err);
   });
@@ -632,22 +724,20 @@ ALERT_SOUND_TOGGLE.addEventListener("click", () => {
 ALERT_CLOSE.addEventListener("click", hideAlertModal);
 LOCATION_BTN.addEventListener("click", toggleLocationTracking);
 
-
 const SIREN_BTN = document.getElementById("sirenIcon");
-const RED_EDGES = document.getElementById("red-feathered-edges");
 
 SIREN_BTN.addEventListener("click", () => {
   if (ALERT_SIREN.paused) {
     ALERT_SIREN.play();
     ALERT_SOUND_TOGGLE.textContent = "Stop Siren";
     SIREN_BTN.style.filter = "invert(0%)";
-    RED_EDGES.style.display = "block";   
+    RED_EDGES.style.display = "block";
   } else {
     ALERT_SIREN.pause();
     ALERT_SIREN.currentTime = 0;
     ALERT_SOUND_TOGGLE.textContent = "Play Siren";
     SIREN_BTN.style.filter = "invert(100%)";
-    RED_EDGES.style.display = "none";    
+    RED_EDGES.style.display = "none";
   }
 });
 
@@ -663,16 +753,37 @@ function hideLocationWarning() {
 
 watchId = navigator.geolocation.watchPosition(
   (pos) => {
-    hideLocationWarning(); 
+    hideLocationWarning();
   },
   (err) => {
     if (err.code === err.PERMISSION_DENIED) {
       showLocationWarning();
     } else {
-      alert("Unable to retrieve your location: " + err.message);
+      showModal(
+        "Location Error",
+        "Unable to retrieve your location: " + err.message
+      );
     }
     trackingLocation = false;
     LOCATION_BTN.style.color = "white";
   },
   { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
 );
+
+function showModal(title, message) {
+  const modal = document.getElementById("location-modal");
+  document.getElementById("modal-title").innerText = title;
+  document.getElementById("modal-message").innerText = message;
+  modal.style.display = "flex"; // show modal
+}
+
+function hideModal() {
+  document.getElementById("location-modal").style.display = "none";
+}
+
+// Close button
+document.querySelector(".modal-close").onclick = hideModal;
+// Close when clicking outside
+window.onclick = (e) => {
+  if (e.target.id === "location-modal") hideModal();
+};
