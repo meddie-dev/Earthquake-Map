@@ -129,6 +129,42 @@
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="script.js"></script>
+      <script>
+      // Disable right click
+      document.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        alert("Inspect is disabled!");
+      });
+
+      // Block common shortcuts
+      document.onkeydown = (e) => {
+        if (
+          e.key === "F12" ||
+          (e.ctrlKey && e.shiftKey && ["I", "C", "J"].includes(e.key)) ||
+          (e.ctrlKey && e.key === "U")
+        ) {
+          e.preventDefault();
+          alert("Inspect is disabled!");
+        }
+      };
+
+      // Detect DevTools open
+      (function devtoolsDetect() {
+        const element = new Image();
+        Object.defineProperty(element, 'id', {
+          get: function () {
+            document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%;'>DevTools detected! Page disabled 🚫</h1>";
+          }
+        });
+        console.log(element);
+
+        setInterval(() => {
+          if (window.outerWidth - window.innerWidth > 200 || window.outerHeight - window.innerHeight > 200) {
+            document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%;'>DevTools detected! Page disabled 🚫</h1>";
+          }
+        }, 1000);
+      })();
+    </script>
 </body>
 
 </html>
