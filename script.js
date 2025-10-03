@@ -80,28 +80,31 @@ function createRippleIcon(magnitude) {
     centerColor = "rgba(241, 196, 15, 1)";
     rippleColor = "rgba(241, 196, 15, 0.7)";
   } else if (magnitude >= 2.5) {
-    centerColor = "rgba(52, 152, 219, 1)"; // blue
+    centerColor = "rgba(52, 152, 219, 1)";
     rippleColor = "rgba(52, 152, 219, 0.7)";
   } else {
     centerColor = "rgba(128,128,128, 1)";
     rippleColor = "rgba(128,128,128, 0.5)";
   }
 
+  // Generate a unique ID to avoid style collision
+  const uniqueId = 'quake' + Date.now() + Math.floor(Math.random() * 1000);
+
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
       <style>
-        .center { fill: ${centerColor}; }
-        .ripple { fill: none; stroke: ${rippleColor}; stroke-width: 3; opacity: 0; animation: rippleWave 2s infinite; }
-        .ripple:nth-child(2) { animation-delay: 1s; }
-        @keyframes rippleWave {
+        .center-${uniqueId} { fill: ${centerColor}; }
+        .ripple-${uniqueId} { fill: none; stroke: ${rippleColor}; stroke-width: 3; opacity: 0; animation: rippleWave-${uniqueId} 2s infinite; }
+        .ripple-${uniqueId}:nth-child(2) { animation-delay: 1s; }
+        @keyframes rippleWave-${uniqueId} {
           0% { r: 10; opacity: 0.6; }
           70% { opacity: 0.1; }
           100% { r: ${maxRadius}; opacity: 0; }
         }
       </style>
-      <circle class="ripple" cx="100" cy="100" r="10"></circle>
-      <circle class="ripple" cx="100" cy="100" r="10"></circle>
-      <circle class="center" cx="100" cy="100" r="10"></circle>
+      <circle class="ripple-${uniqueId}" cx="100" cy="100" r="10"></circle>
+      <circle class="ripple-${uniqueId}" cx="100" cy="100" r="10"></circle>
+      <circle class="center-${uniqueId}" cx="100" cy="100" r="10"></circle>
     </svg>`;
 
   return L.divIcon({
@@ -112,6 +115,7 @@ function createRippleIcon(magnitude) {
     popupAnchor: [0, -maxRadius / 2],
   });
 }
+
 
 function formatDateTime(date) {
   return date.toLocaleString(undefined, {
